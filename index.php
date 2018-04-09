@@ -15,6 +15,12 @@ if ($USER==="")
 	exit();
 }
 
+if (isset($_GET["logout"]))
+{
+	logout();
+	exit();
+}
+
 if (isset($_POST["rating"]))
 {
     updateRatingsFromPost();
@@ -110,6 +116,12 @@ function showLoginForm()
 </body>
 </html>
 <?php
+}
+
+function logout()
+{
+	session_destroy();
+	header("Location: index.php");
 }
 
 function updateRatingsFromPost()
@@ -219,8 +231,8 @@ function showGallery($gallery)
 <body>
 
 	<center>
-		<p style="font-size:small">
-			Juez: <?=$USER?> (<a href="logout.php">cerrar sesión</a>) · Aprobadas: <?=$COUNT_OK?> ·
+		<p>
+			Juez: <?=$USER?> (<a href=".?logout">cerrar sesión</a>) · Aprobadas: <?=$COUNT_OK?> ·
 			<a href=".?skipped">Saltadas</a>: <?=$COUNT_SKIP?> ·
 			<a href=".">Por mirar</a>: <?=$COUNT_TODO?> de <?=sizeof($images)?>
 		</p>
