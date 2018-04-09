@@ -9,13 +9,13 @@ $db = requireDatabase($databasePath);
 $_SESSION['user'] = getCurrentUser();
 $USER = $_SESSION['user'];
 
-if ($USER =="" || $USER==null)
+if ($USER==="")
 {
     showLoginForm();
 	exit();
 }
 
-if (key_exists("rating", $_POST))
+if (isset($_POST["rating"]))
 {
     updateRatingsFromPost();
 	exit();
@@ -34,7 +34,7 @@ foreach ($scores as $score)
 $COUNT_TODO = sizeof($images)-sizeof($scores);
 
 $gallery = array();
-if (key_exists('skipped',$_GET))
+if (isset($_GET['skipped']))
 {
 	foreach ($images as $image) if (isset($scores[$image["#"]]) && $scores[$image["#"]]=="-1") $gallery[] = $image;
 }
@@ -72,7 +72,7 @@ function getCurrentUser()
 function getLoginUser()
 {
 	global $db;
-	if (!key_exists("token",$_POST)) return null;
+	if (!isset($_POST["token"])) return null;
 
 	$token = $_POST['token'];
 	return $db->querySingle("SELECT user FROM judgesData WHERE pass='".$token."'");
