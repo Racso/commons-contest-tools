@@ -178,9 +178,9 @@ function showGallery($gallery)
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Calificación de Wiki Loves Monuments Colombia</title>
+	<title>Calificación fotográfica</title>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-	<link rel="stylesheet" type="text/css" href="wlm.css" />
+	<link rel="stylesheet" type="text/css" href="css.css" />
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
 	<script type="text/javascript">
 
@@ -229,7 +229,6 @@ function showGallery($gallery)
 
 </head>
 <body>
-
 	<center>
 		<p>
 			Juez: <?=$USER?> (<a href=".?logout">cerrar sesión</a>) · Aprobadas: <?=$COUNT_OK?> ·
