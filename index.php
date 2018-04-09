@@ -1,71 +1,29 @@
 <?php
 
+$databasePath = "../stats/db";
+
+
 session_start();
 
-if ($db===null) $db = new SQLite3('../stats/db');
-	
-if (!$db) {
-	die("No se encontró el archivo de base de datos.");
-}
+$db = requireDatabase($databasePath);
 
-if ($_POST['token']!=null){
-    //Está iniciando sesión. Verificar token.
-    $_SESSION['user'] = "";
-
-    $token = $_POST['token'];
-    $_SESSION['user'] = $db->querySingle("SELECT user FROM judgesData WHERE pass='".$token."'");
-}
-
+$_SESSION['user'] = getCurrentUser();
 $USER = $_SESSION['user'];
 
-if ($USER =="" || $USER==null){
-    echo '
-		<!DOCTYPE html>
-		<html>
-		  <head>
-			<title>Juez</title>
-			<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-		  </head>
-		  <body>
-				<center>
-				<form action="" method="post">
-				<table>
-				<tr><td>Token</td><td><input type="password" name="token" size="20"/></td></tr>
-				<tr><td colspan="2"><center><input type="submit" value="Iniciar sesión" /></center></td></tr>
-				</form>
-				</center>
-		  </body>
-		</html>';
-    exit();
-}  
-
-if (key_exists("rating",$_POST)){
-    date_default_timezone_set('UTC');
-	$sentencia = $db->prepare('INSERT INTO judges (photoid,judge,score,timestamp) VALUES (:id,:judge,:score,:time);');
-    foreach($_POST["rating"] as $rating){
-		$sentencia->reset();
-		$sentencia->bindValue(':id', key($rating),SQLITE3_TEXT);
-		$sentencia->bindValue(':score', $rating[key($rating)],SQLITE3_INTEGER);
-		$sentencia->bindValue(':time', date('Y-m-d H:i:s'),SQLITE3_TEXT);
-		$sentencia->bindValue(':judge', $USER,SQLITE3_TEXT);
-		$resultado = $sentencia->execute();
-	}
-    exit();
+if ($USER =="" || $USER==null)
+{
+    showLoginForm();
+	exit();
 }
 
-$images = array();
-$res = $db->query("SELECT photos.title title,id,url FROM photos,thumbs,ids WHERE photos.title=thumbs.title AND photos.title=ids.title
-ORDER BY id");
-while ($r = $res->fetchArray(SQLITE3_ASSOC)) {
-	$r['url'] = preg_replace("!/[0-9]+px-!","/500px-",$r['url']);
-	$images[] = array('#'=>$r['id'],'file'=>$r['title'],'thumb'=>$r['url']);
+if (key_exists("rating", $_POST))
+{
+    updateRatingsFromPost();
+	exit();
 }
 
-$scores = array();
-$res = $db->query("SELECT photoid,score FROM judges WHERE judge='".$USER."'");
-while ($r = $res->fetchArray(SQLITE3_ASSOC)) {
-	$scores[$r['photoid']] = $r['score'];
-}
+$images = loadImagesMetadata();
+$scores = loadImagesScores();
 
 //¡Sacar algunos datos de estado!
 $COUNT_OK = 0;
@@ -110,8 +68,8 @@ while ($curImg<$cols*$rows)
 $outGallery.= '</table>';
 
 
-    // == Imprimir ==
-    echo '
+// == Imprimir ==
+echo '
     <!DOCTYPE html>
     <html>
     <head>
@@ -120,9 +78,9 @@ $outGallery.= '</table>';
         <link rel="stylesheet" type="text/css" href="wlm.css" />
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
 	<script type="text/javascript">
-        
+
         var rating = {};
-        
+
         $(document).ready(function()
         {
             $(".imageFrame").each(function(i,obj){
@@ -132,7 +90,7 @@ $outGallery.= '</table>';
             $(".imageFrame").click(function()
             {
                 var image_id = $(this).attr("id");
-                
+
                 if (rating[image_id]!=1)
                 {
                     rating[image_id] = 1;
@@ -148,7 +106,7 @@ $outGallery.= '</table>';
             {
                 var image_id = $(this).attr("id");
                 image_id = image_id.substr(1);
-                
+
                 if (rating[image_id]!=-1)
                 {
                     rating[image_id] = -1;
@@ -169,12 +127,12 @@ $outGallery.= '</table>';
                             scroll(0,0);
                         }
                     });
-                
+
             });
 
 
         });
-        </script>        
+        </script>
 
     </head>
     <body>
@@ -187,5 +145,104 @@ $outGallery.= '</table>';
     </center>
     </body>
     </html>';
+
+function requireDatabase($path)
+{
+	$db = new SQLite3($databasePath);
+	if (!$db)
+	{
+		exit("No se encontró el archivo de base de datos.");
+	}
+	return $db;
+}
+
+function getCurrentUser()
+{
+	$loginUser = getLoginUser();
+
+	return $loginUser!==null? $loginUser : $_SESSION['user'];
+}
+
+function getLoginUser()
+{
+	$token = $_POST['token'];
+	if ($token===null) return null;
+
+	return $db->querySingle("SELECT user FROM judgesData WHERE pass='".$token."'");
+}
+
+function showLoginForm()
+{
+?>
+		<!DOCTYPE html>
+		<html>
+		  <head>
+			<title>Juez</title>
+			<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		  </head>
+		  <body>
+				<center>
+					<form action="" method="post">
+						<table>
+							<tr>
+								<td>Token</td>
+								<td>
+									<input type="password" name="token" size="20" />
+								</td>
+							</tr>
+							<tr>
+								<td colspan="2">
+									<center>
+										<input type="submit" value="Iniciar sesión" />
+									</center>
+								</td>
+							</tr>
+						</table>
+					</form>
+				</center>
+		  </body>
+		</html>';
+<?php
+}
+
+function updateRatingsFromPost()
+{
+	global $USER;
+	date_default_timezone_set('UTC');
+
+	$query = $db->prepare('INSERT INTO judges (photoid, judge, score, timestamp) VALUES (:id, :judge, :score, :time)');
+    foreach($_POST["rating"] as $rating)
+	{
+		$query->reset();
+		$query->bindValue(':id', key($rating), SQLITE3_TEXT);
+		$query->bindValue(':score', $rating[key($rating)], SQLITE3_INTEGER);
+		$query->bindValue(':time', date('Y-m-d H:i:s'), SQLITE3_TEXT);
+		$query->bindValue(':judge', $USER, SQLITE3_TEXT);
+		$resultado = $query->execute();
+	}
+}
+
+function loadImagesMetadata()
+{
+	$images = array();
+	$queryResult = $db->query("SELECT photos.title title, id, url FROM photos, thumbs, ids WHERE photos.title=thumbs.title AND photos.title=ids.title ORDER BY id");
+	while ($row = $queryResult->fetchArray(SQLITE3_ASSOC))
+	{
+		$row['url'] = preg_replace("!/[0-9]+px-!", "/500px-", $row['url']);
+		$images[] = array('#'=>$row['id'], 'file'=>$row['title'], 'thumb'=>$row['url']);
+	}
+	return $images;
+}
+
+function loadImagesScores()
+{
+	global $USER;
+	$scores = array();
+	$queryResult = $db->query("SELECT photoid, score FROM judges WHERE judge='".$USER."'");
+	while ($row = $queryResult->fetchArray(SQLITE3_ASSOC))
+	{
+		$scores[$row['photoid']] = $row['score'];
+	}
+}
 
 ?>
