@@ -76,7 +76,7 @@ function showLoginForm()
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Juez</title>
+	<title>Calificación fotográfica</title>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 </head>
 <body>
@@ -200,39 +200,62 @@ function showGallery($gallery)
 
 		var rating = {};
 
-		$(document).ready(function () {
-			$(".imageFrame").each(function (i, obj) {
-				rating[$(this).attr("id")] = 0;
-			});
+		function toggleRating(id, value1, value2)
+		{
+			var newValue = rating[id] === value1 ? value2 : value1;
+			setRating(id, newValue);
+		}
 
-			$(".imageFrame").click(function () {
+		function setRating(id, value)
+		{
+			rating[id] = value;
+			var cssForRating = getCssForRating(value);
+			$("#" + id).css(cssForRating);
+		}
+
+		function getCssForRating(value)
+		{
+			switch (value)
+			{
+				case -1:
+					return { "border-style": "dashed", "border-width": "5px", "border-color": "#C0C0C0" };
+				case 0:
+					return { "border-style": "none" };
+				case 1:
+					return { "border-style": "solid", "border-width": "5px", "border-color": "#33CC33" };
+				default:
+					return {};
+			}
+		}
+
+		$(document).ready(function ()
+		{
+
+			$(".imageFrame").each(function (i, obj)
+			{
 				var image_id = $(this).attr("id");
-
-				if (rating[image_id] != 1) {
-					rating[image_id] = 1;
-					$("#" + image_id).css({ "border-style": "solid", "border-width": "5px", "border-color": "#33CC33" });
-				}
-				else {
-					rating[image_id] = 0;
-					$("#" + image_id).css({ "border-style": "none" });
-				}
+				rating[image_id] = 0;
 			});
-			$(".skipButton").click(function () {
+
+			$(".imageFrame").click(function ()
+			{
+				var image_id = $(this).attr("id");
+				toggleRating(image_id, 0, 1);
+			});
+
+			$(".skipButton").click(function ()
+			{
 				var image_id = $(this).attr("id");
 				image_id = image_id.substr(1);
-
-				if (rating[image_id] != -1) {
-					rating[image_id] = -1;
-					$("#" + image_id).css({ "border-style": "dashed", "border-width": "5px", "border-color": "#C0C0C0" });
-				}
-				else {
-					rating[image_id] = 0;
-					$("#" + image_id).css({ "border-style": "none" });
-				}
+				toggleRating(image_id, 0, -1);
 			});
-			$(".saveButton").click(function () {
-				$.post(document.location.href, { "rating[]": rating }, function (data) {
-					if (data != null) {
+
+			$(".saveButton").click(function ()
+			{
+				$.post(document.location.href, { "rating[]": rating }, function (data)
+				{
+					if (data != null)
+					{
 						location.reload(true);
 						scroll(0, 0);
 					}
