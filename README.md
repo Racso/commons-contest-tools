@@ -5,4 +5,7 @@ This repository contains some tools I've created to help running photographic co
 The tools were originally created in 2012 for "Wiki Loves Monuments: Colombia", and have received few updates since then. Recently (April 2018), I've been cleaning them a bit.
 
 ## Tools
-* **judge.php:** this tool can be used by the judges of a contest to filter the best photos in order to pick the contest winners.
+### judge.php
+![cleanup 70%](https://img.shields.io/badge/cleanup-70%25-yellowgreen.svg)
+
+This tool can be used by the judges of a contest to filter the best photos in order to pick the contest winners.
