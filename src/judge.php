@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 $databasePath = "db";
 
@@ -107,7 +107,8 @@ function showLoginForm()
 function logout()
 {
 	session_destroy();
-	header("Location: index.php");
+	$reloadPageURL = parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH);
+	header('Location: ' . $reloadPageURL);
 }
 
 function updateRatingsFromPost()
@@ -244,27 +245,29 @@ function showGallery($gallery)
 <body>
 	<center>
 		<p>
-			Juez: <?=$USER?> (<a href=".?logout">cerrar sesión</a>) · Aprobadas: <?=$COUNT_OK?> ·
-			<a href=".?skipped">Saltadas</a>: <?=$COUNT_SKIP?> ·
-			<a href=".">Por mirar</a>: <?=$COUNT_TODO?> de <?=sizeof($images)?>
+			Juez: <?=$USER?> (<a href="?logout">cerrar sesión</a>) · Aprobadas: <?=$COUNT_OK?> ·
+			<a href="?skipped">Saltadas</a>: <?=$COUNT_SKIP?> ·
+			<a href="?">Por mirar</a>: <?=$COUNT_TODO?> de <?=sizeof($images)?>
 		</p>
 		<hr />
 		<table style="text-align: center; border: none;">
 			<?php while ($curImg<$cols*$rows): ?>
-				<tr>
-					<?php for ($i=0; $i<$cols; $i++): ?>
-					<td>
-						<?php if ($curImg<sizeof($gallery)): ?>
-						<img src="<?=$gallery[$curImg]['thumb']?>" class="imageFrame" id="<?=$gallery[$curImg]['#']?>" />
-						<br />
-						[<a target="_blank" href="http://commons.wikimedia.org/wiki/<?=rawurlencode($gallery[$curImg]['file'])?>">ver</a>] 
-						[<span class="skipButton" id="s<?=$gallery[$curImg]['#']?>">saltar</span>]
-						<br />
-						<?php endif; ?>
-						<?php $curImg += 1; ?>
-					</td>
-					<?php endfor; ?>
-				</tr>
+			<tr>
+				<?php for ($i=0; $i<$cols; $i++): ?>
+				<td>
+					<?php if ($curImg<sizeof($gallery)): ?>
+					<img src="<?=$gallery[$curImg]['thumb']?>" class="imageFrame" id="<?=$gallery[$curImg]['#']?>" />
+					<br />
+					[
+					<a target="_blank" href="http://commons.wikimedia.org/wiki/<?=rawurlencode($gallery[$curImg]['file'])?>">ver</a>]
+						[
+					<span class="skipButton" id="s<?=$gallery[$curImg]['#']?>">saltar</span>]
+					<br />
+					<?php endif; ?>
+					<?php $curImg += 1; ?>
+				</td>
+				<?php endfor; ?>
+			</tr>
 			<?php endwhile; ?>
 		</table>
 		<input type="button" class="saveButton" value="Guardar y ver más" />
