@@ -44,8 +44,7 @@ exit();
 
 function requireDatabase($path)
 {
-	global $databasePath;
-	$db = new SQLite3($databasePath);
+	$db = new SQLite3($path);
 	if (!$db)
 	{
 		exit("No se encontró el archivo de base de datos.");
