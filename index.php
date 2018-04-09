@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 $databasePath = "db";
 
@@ -30,24 +30,11 @@ if (isset($_POST["rating"]))
 $images = loadImagesMetadata();
 $scores = loadImagesScores();
 
-$COUNT_OK = 0;
-$COUNT_SKIP = 0;
-foreach ($scores as $score)
-{
-	if ($score==1) $COUNT_OK++;
-	if ($score==-1) $COUNT_SKIP++;
-}
+$COUNT_OK = countScoresEqualTo(1);
+$COUNT_SKIP = countScoresEqualTo(-1);
 $COUNT_TODO = sizeof($images)-sizeof($scores);
 
-$gallery = array();
-if (isset($_GET['skipped']))
-{
-	foreach ($images as $image) if (isset($scores[$image["#"]]) && $scores[$image["#"]]=="-1") $gallery[] = $image;
-}
-else
-{
-	foreach ($images as $image) if (key_exists($image["#"], $scores)==false) $gallery[] = $image;
-}
+$gallery = isset($_GET['skipped'])? getSkippedImages() : getUnseenImages();
 
 shuffle($gallery);
 
@@ -164,6 +151,33 @@ function loadImagesScores()
 		$scores[$row['photoid']] = $row['score'];
 	}
 	return $scores;
+}
+
+function countScoresEqualTo($value)
+{
+	global $scores;
+	$total = 0;
+	foreach ($scores as $score)
+	{
+		if ($score==$value) $total += 1;
+	}
+	return $total;
+}
+
+function getSkippedImages()
+{
+	global $images, $scores;
+	$skippedImages = array();
+	foreach ($images as $image) if (isset($scores[$image["#"]]) && $scores[$image["#"]]=="-1") $skippedImages[] = $image;
+	return $skippedImages;
+}
+
+function getUnseenImages()
+{
+	global $images, $scores;
+	$unseenImages = array();
+	foreach ($images as $image) if (key_exists($image["#"], $scores)==false) $unseenImages[] = $image;
+	return $unseenImages;
 }
 
 function showGallery($gallery)
