@@ -1,133 +1,181 @@
 <?php
 
-$isAdmin = ($_GET["admin"]==="1");
-$forceRefresh = ($_GET["refresh"]==="1");
-$isUpdating = true;
-
+$databasePath = "db";
 date_default_timezone_set('America/Bogota');
 
-if ($categoryName===null) $categoryName = "Wikivacaciones_2016";
+if (!isset($categoryName))
+{
+	exit('La variable $categoryName debe establecerse antes de ejecutar la actualización de caché.' );
+}
 
-if ($db===null) $db = new SQLite3('db');
-	
+$isAdmin = isset($_GET["admin"]) && $_GET["admin"]==="1";
+$forceRefresh = isset($_GET["refresh"]) && $_GET["refresh"]==="1";
+
+if (!isset($db)) $db = new SQLite3($databasePath);
+
 if (!$db) {
-	die("No se encontró el archivo de base de datos.");
+	exit("No se encontró el archivo de base de datos.");
 }
 
-if ($forceRefresh) {
-    if ($isAdmin) echo "Refrescando toda la base de datos.<br>";
-    $db->query("DELETE FROM photos;");
-    $db->query("DELETE FROM thumbs;");
-    $db->query("UPDATE metadata SET value='' WHERE name IN ('photosDate','thumbsDate');");
+if ($forceRefresh)
+{
+	clearDatabaseCache();
 }
 
-$newImages = array();
+$cacheDate = getCacheDate();
+showAdminInfo("Iniciando actualizacion. Ultimo timestamp: ".$cacheDate."<br>");
 
-$cacheDate = $db->querySingle("SELECT value FROM metadata WHERE name='photosDate'");
-if ($cacheDate===NULL) $cacheDate="";
+$newImages = getImagesFromCommons($cacheDate);
 
-if ($isAdmin) echo "Iniciando actualizacion. Ultimo timestamp: ".$cacheDate."<br>";
+showAdminInfo("Fotos nuevas: ".sizeof($newImages->images)."<br>");
+showAdminInfo("Nuevo timestamp de la cache: ".$newImages->lastTimestamp."<br>");
 
-if ($isUpdating) {
+if (sizeof($newImages->images)>0)
+{
+	updateDatabaseCache($newImages);
+}
+else
+{
+	showAdminInfo("Sin cambios.<br>");
+}
+
+showAdminInfo("Actualización terminada.<br>");
+
+function showAdminInfo($message)
+{
+	global $isAdmin;
+	if ($isAdmin)
+	{
+		echo $message;
+	}
+}
+
+function clearDatabaseCache()
+{
+	global $db;
+	showAdminInfo("Refrescando toda la base de datos.<br>");
+    $db->query("DELETE FROM photos");
+    $db->query("DELETE FROM thumbs");
+    $db->query("UPDATE metadata SET value='' WHERE name IN ('photosDate','thumbsDate')");
+}
+
+function getCacheDate()
+{
+	global $db;
+	$cacheDate = $db->querySingle("SELECT value FROM metadata WHERE name='photosDate'");
+	return $cacheDate!==NULL? $cacheDate : "";
+}
+
+function getImagesFromCommons($cacheDate) : ImagesData
+{
+	global $categoryName;
+
+	$loadedData = new ImagesData();
+
 	require_once( 'RacsoBot2.php' );
 	$bot = new RacsoBot2();
 
 	$loginResult = $bot->login('BOTzilla','contrasena','commons','wikimedia');
 
-	if ($isAdmin) echo "Login hecho? " . ($loginResult ? "S":"N")."<br>";
+	showAdminInfo("Login hecho? " . ($loginResult ? "S":"N")."<br>");
 
-	if ($loginResult) {
-		$continueToken = "";
-		$lastTimestamp = "";
-
-		do{
-			$params = array(
-				'action'=>'query',
-				'prop'=>'imageinfo|revisions',
-				'format'=>'json',
-				'rvprop'=>'timestamp|content',
-				'iiprop'=>'url',
-				'iiurlwidth'=>'180',
-				'iiurlheight'=>'180',
-				'rawcontinue'=>'',
-				'generator'=>'categorymembers',
-				'gcmtitle'=>"Category:".$categoryName,
-				'gcmsort'=>'timestamp',
-				'gcmdir'=>'newer',
-				'gcmlimit'=>50);
-			if ($cacheDate!=="") {
-				$params['gcmstart']=$cacheDate;
-			}
-			if ($continueToken!=="") {
-				$params['gcmcontinue']=$continueToken;
-			}
-
-			$data = $bot->callAPI($params);
-			if ($isAdmin) echo "Datos recibidos: ".sizeof($data)."<br>";
-			if ($isAdmin) echo "Datos recibidos de ".sizeof($data['query']['pages'])." archivos.<br>";
-
-			if (key_exists('query-continue',$data)) {
-				$continueToken = $data['query-continue']['categorymembers']['gcmcontinue'];
-			}
-			else {
-				$continueToken = "";
-			}
-			
-			foreach ($data['query']['pages'] as $page){
-				$tmpTimestamp = $page['revisions'][0]['timestamp'];
-				if ($tmpTimestamp>$lastTimestamp) $lastTimestamp = $tmpTimestamp;
-
-				if ($lastTimestamp<=$cacheDate) continue; //Saltarse los que ya hayan sido incluidos en la última caché.
-				preg_match('!\{\{Tomada[ _]en[ _]Colombia\|([0-9]{4,6})\}\}!',$page['revisions'][0]['*'],$id);
-				$id = $id[1];
-				preg_match('!author=\[\[User:(.*?)\|.*?\]\]!',$page['revisions'][0]['*'],$author);
-				$author = $author[1];
-				if ($author==="" || $author===null) $author="?";
-				$thumbURL = $page['imageinfo'][0]['thumburl'];
-				$images[] = array('titulo' => $page['title'], 'id' => $id, 'autor' => $author, 'thumb' => $thumbURL);
-			}
-
-		} while ($continueToken!=="");
+	if (!$loginResult)
+	{
+		return $loadedData;
 	}
+
+	$continueToken = "";
+
+	ini_set('max_execution_time', 120);
+
+	do
+	{
+		$params = array(
+			'action'=>'query',
+			'prop'=>'imageinfo|revisions',
+			'format'=>'json',
+			'rvprop'=>'timestamp|content',
+			'iiprop'=>'url',
+			'iiurlwidth'=>'180',
+			'iiurlheight'=>'180',
+			'rawcontinue'=>'',
+			'generator'=>'categorymembers',
+			'gcmtitle'=>"Category:".$categoryName,
+			'gcmsort'=>'timestamp',
+			'gcmdir'=>'newer',
+			'gcmlimit'=>50);
+		if ($cacheDate!=="")
+		{
+			$params['gcmstart']=$cacheDate;
+		}
+		if ($continueToken!=="")
+		{
+			$params['gcmcontinue']=$continueToken;
+		}
+
+		$data = $bot->callAPI($params);
+		showAdminInfo("Datos recibidos: ".sizeof($data)."<br>");
+		if (isset($data['query']['pages']))
+		{
+			showAdminInfo("Datos recibidos de ".sizeof($data['query']['pages'])." archivos.<br>");
+
+			$continueToken = isset($data['query-continue']['categorymembers']['gcmcontinue'])? $continueToken = $data['query-continue']['categorymembers']['gcmcontinue'] : "";
+
+			foreach ($data['query']['pages'] as $page)
+			{
+				$tmpTimestamp = $page['revisions'][0]['timestamp'];
+				if ($tmpTimestamp>$loadedData->lastTimestamp) $loadedData->lastTimestamp = $tmpTimestamp;
+				if ($loadedData->lastTimestamp<=$cacheDate) continue;
+
+				preg_match('!\{\{Tomada[ _]en[ _]Colombia\|([0-9]{4,6})\}\}!',$page['revisions'][0]['*'],$id);
+				$id = isset($id[1])? $id[1] : "";
+				preg_match('!author=\[\[User:(.*?)\|.*?\]\]!',$page['revisions'][0]['*'],$author);
+				$author = isset($author[1])? $author[1] : "?";
+				$thumbURL = isset($page['imageinfo'][0]['thumburl'])? $page['imageinfo'][0]['thumburl'] : "";
+				$loadedData->images[] = array('titulo' => $page['title'], 'id' => $id, 'autor' => $author, 'thumb' => $thumbURL);
+			}
+		}
+	} while ($continueToken!=="");
+	return $loadedData;
 }
 
-if ($isAdmin) echo "Fotos nuevas: ".sizeof($images)."<br>";
-if ($isAdmin) echo "Nuevo timestamp de la cache: ".$lastTimestamp."<br>";
-
-if (sizeof($images)>0) {
-	$result = $db->query("BEGIN TRANSACTION;");
+function updateDatabaseCache(ImagesData $imagesData)
+{
+	global $db;
+	$db->query("BEGIN TRANSACTION;");
 	$statement = $db->prepare('INSERT OR IGNORE INTO photos (title,author,place) VALUES (:title,:author,:place);');
 	$statementThumb = $db->prepare('INSERT OR IGNORE INTO thumbs (title,url) VALUES (:title,:url);');
 	$statementID = $db->prepare('INSERT OR IGNORE INTO ids (title) VALUES (:title);');
-	foreach ($images as $k => $v) {
+	foreach ($imagesData->images as $k => $v) {
 		$statement->reset();
 		$statement->clear();
 		$statement->bindValue(':title', $v["titulo"]);
 		$statement->bindValue(':author', $v["autor"]);
 		$statement->bindValue(':place', $v["id"]);
-		$result = $statement->execute();
+		$statement->execute();
 
 		$statementThumb->reset();
 		$statementThumb->clear();
 		$statementThumb->bindValue(':title',$v["titulo"]);
 		$statementThumb->bindValue(':url',$v["thumb"]);
-		$result = $statementThumb->execute();
+		$statementThumb->execute();
 
 		$statementID->reset();
 		$statementID->clear();
 		$statementID->bindValue(':title',$v["titulo"]);
-		$result = $statementID->execute();
+		$statementID->execute();
 	}
 	$statement->close();
 	$statementThumb->close();
 	$statementID->close();
-	$result = $db->query("UPDATE metadata SET value = '".$lastTimestamp."' WHERE name='photosDate';");
-	$result = $db->query("COMMIT;");
-}
-else {
-	if ($isAdmin) echo "Sin cambios.<br>";
+	$db->query("UPDATE metadata SET value = '".$imagesData->lastTimestamp."' WHERE name='photosDate';");
+	$db->query("COMMIT;");
 }
 
-if ($isAdmin) echo "Actualización terminada.<br>";
+class ImagesData
+{
+	public $images = array();
+	public $lastTimestamp = "";
+}
 
 ?>
