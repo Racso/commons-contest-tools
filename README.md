@@ -6,6 +6,6 @@ The tools were originally created in 2012 for "Wiki Loves Monuments: Colombia", 
 
 ## Tools
 ### judge.php
-![cleanup 70%](https://img.shields.io/badge/cleanup-70%25-yellowgreen.svg)
+![code cleanup 90%](https://img.shields.io/badge/code%20cleanup-90%25-green.svg)
 
 This tool can be used by the judges of a contest to filter the best photos in order to pick the contest winners.
