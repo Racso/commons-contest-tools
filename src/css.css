@@ -1,0 +1,33 @@
+﻿
+.login-form
+{
+    text-align: center;
+}
+
+.dashboard 
+{
+    text-align: center;
+    margin: 20px auto;
+    padding: 0 0 20px 0;
+    border-bottom: 2px solid #ccc;
+}
+
+.dashboard__element 
+{
+    display: inline;
+}
+
+.dashboard__element + .dashboard__element:before {
+    content: " • ";
+}
+
+.gallery
+{
+    margin: 0 auto;
+}
+
+.saveButton
+{
+    display: block;
+    margin: 0 auto;
+}

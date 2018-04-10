@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 $databasePath = "db";
 
@@ -76,29 +76,16 @@ function showLoginForm()
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Calificación fotográfica</title>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Calificación fotográfica</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link rel="stylesheet" type="text/css" href="css.css" />
 </head>
 <body>
-	<center>
-		<form action="" method="post">
-			<table>
-				<tr>
-					<td>Token</td>
-					<td>
-						<input type="password" name="token" size="20" />
-					</td>
-				</tr>
-				<tr>
-					<td colspan="2">
-						<center>
-							<input type="submit" value="Iniciar sesión" />
-						</center>
-					</td>
-				</tr>
-			</table>
-		</form>
-	</center>
+	<form class="login-form" action="" method="post">
+		<label for="token" class="login-form__title">Token</label>
+		<input class="login-form__password" type="password" name="token" size="20" />
+		<input class="login-form__submit" type="submit" value="Iniciar sesión" />
+	</form>
 </body>
 </html>
 <?php
@@ -266,37 +253,36 @@ function showGallery($gallery)
 
 </head>
 <body>
-	<center>
-		<p>
-			Juez: <?=$USER?> (<a href="?logout">cerrar sesión</a>) · Aprobadas: <?=$COUNT_OK?> ·
-			<a href="?skipped">Saltadas</a>: <?=$COUNT_SKIP?> ·
-			<a href="?">Por mirar</a>: <?=$COUNT_TODO?> de <?=sizeof($images)?>
-		</p>
-		<hr />
-		<table style="text-align: center; border: none;">
-			<?php while ($curImg<$cols*$rows): ?>
-			<tr>
-				<?php for ($i=0; $i<$cols; $i++): ?>
-				<td>
-					<?php if ($curImg<sizeof($gallery)): ?>
-					<img src="<?=$gallery[$curImg]['thumb']?>" class="imageFrame" id="<?=$gallery[$curImg]['#']?>" />
-					<br />
+	<div class="dashboard">
+		<p class="dashboard__element">Juez: <?=$USER?></p>
+		<p class="dashboard__element"><a href="?logout">Cerrar sesión</a></p>
+		<p class="dashboard__element">Aprobadas: <?=$COUNT_OK?></p>
+		<p class="dashboard__element"><a href="?skipped">Saltadas</a>: <?=$COUNT_SKIP?></p>
+		<p class="dashboard__element"><a href="?">Por mirar</a>: <?=$COUNT_TODO?> de <?=sizeof($images)?></p>
+	</div>
+	<table class="gallery" style="text-align: center; border: none;">
+		<?php while ($curImg<$cols*$rows): ?>
+		<tr>
+			<?php for ($i=0; $i<$cols; $i++): ?>
+			<td class="gallery__element">
+				<?php if ($curImg<sizeof($gallery)): ?>
+				<img src="<?=$gallery[$curImg]['thumb']?>" class="imageFrame" id="<?=$gallery[$curImg]['#']?>" />
+				<br />
+				[
+				<a target="_blank" href="http://commons.wikimedia.org/wiki/<?=rawurlencode($gallery[$curImg]['file'])?>">ver</a>]
 					[
-					<a target="_blank" href="http://commons.wikimedia.org/wiki/<?=rawurlencode($gallery[$curImg]['file'])?>">ver</a>]
-						[
-					<span class="skipButton" id="s<?=$gallery[$curImg]['#']?>">saltar</span>]
-					<br />
-					<?php endif; ?>
-					<?php $curImg += 1; ?>
-				</td>
-				<?php endfor; ?>
-			</tr>
-			<?php endwhile; ?>
-		</table>
-		<input type="button" class="saveButton" value="Guardar y ver más" />
-	</center>
+				<span class="skipButton" id="s<?=$gallery[$curImg]['#']?>">saltar</span>]
+				<br />
+				<?php endif; ?>
+				<?php $curImg += 1; ?>
+			</td>
+			<?php endfor; ?>
+		</tr>
+		<?php endwhile; ?>
+	</table>
+	<input class="saveButton" type="button" value="Guardar y ver más" />
 </body>
-</html>';
+</html>
 
 <?php
 
