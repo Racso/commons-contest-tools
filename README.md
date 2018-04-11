@@ -13,7 +13,7 @@ This tool can be used by the judges of a contest to filter the best photos in or
 Its original version is deployed in http://wikimediacolombia.org/vacaciones/juez.
 
 ### stats.php
-![code cleanup 40%](https://img.shields.io/badge/code%20cleanup-40%25-yellow.svg)
+![code cleanup 70%](https://img.shields.io/badge/code%20cleanup-70%25-yellowgreen.svg)
 
 This tool shows some interesting stats about the contest.
 
